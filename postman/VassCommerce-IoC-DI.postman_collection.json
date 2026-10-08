@@ -1,0 +1,313 @@
+{
+  "info": {
+    "name": "VassCommerce - IoC/DI (Produto)",
+    "description": "Demonstra os status 201/200/404/400 e a troca de implementacao de ProdutoModel.\n\nComo usar: suba a aplicacao com o profile mem (padrao) e rode a colecao; depois suba com --spring.profiles.active=sql e rode de novo. Nenhuma linha do controller muda: so o id do produto criado (mem => 1, sql => 1001) e o log do servidor mostram qual implementacao respondeu.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "produtoId",
+      "value": "1"
+    }
+  ],
+  "item": [
+    {
+      "name": "1) POST /produto - 201 Created",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status 201 Created\", function () { pm.response.to.have.status(201); });",
+              "pm.test(\"Content-Type e application/json\", function () { pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\"); });",
+              "const body = pm.response.json();",
+              "pm.test(\"Location aponta para o produto criado\", function () { pm.expect(pm.response.headers.get(\"Location\")).to.include(\"/produto/\" + body.id); });",
+              "pm.test(\"Corpo e um ProdutoResponse\", function () { pm.expect(body).to.have.all.keys(\"id\", \"nome\", \"descricao\", \"valorUnitario\"); });",
+              "pm.collectionVariables.set(\"produtoId\", body.id);",
+              "console.log(\"Produto criado com id \" + body.id + \"  (profile mem => 1 | profile sql => 1001)\");"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/produto",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "produto"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"Notebook Vass 15\",\n  \"descricao\": \"Notebook de 15 polegadas, 16 GB de RAM\",\n  \"valorUnitario\": 3499.9\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Cria um produto. O id devolvido mostra a implementacao ativa: mem => 1, sql => 1001."
+      }
+    },
+    {
+      "name": "2) GET /produto/{id} - 200 OK",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status 200 OK\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"Retorna o produto criado\", function () { pm.expect(pm.response.json().id).to.eql(Number(pm.collectionVariables.get(\"produtoId\"))); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/produto/{{produtoId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "produto",
+            "{{produtoId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "3) GET /produto?nome&valorMinimo&valorMaximo - 200 OK",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status 200 OK\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"Lista contem o produto criado\", function () { const ids = pm.response.json().map(function (p) { return p.id; }); pm.expect(ids).to.include(Number(pm.collectionVariables.get(\"produtoId\"))); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/produto?nome=note&valorMinimo=1000&valorMaximo=5000",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "produto"
+          ],
+          "query": [
+            {
+              "key": "nome",
+              "value": "note"
+            },
+            {
+              "key": "valorMinimo",
+              "value": "1000"
+            },
+            {
+              "key": "valorMaximo",
+              "value": "5000"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "4) GET /produto/999999 - 404 Not Found",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status 404 Not Found\", function () { pm.response.to.have.status(404); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/produto/999999",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "produto",
+            "999999"
+          ]
+        }
+      }
+    },
+    {
+      "name": "5) POST /produto (corpo invalido) - 400 Bad Request",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status 400 Bad Request\", function () { pm.response.to.have.status(400); });",
+              "const b = pm.response.json();",
+              "pm.test(\"JSON de erro padronizado (ApiError)\", function () { pm.expect(b).to.include.keys(\"timestamp\", \"status\", \"error\", \"message\", \"path\", \"erros\"); pm.expect(b.status).to.eql(400); });",
+              "pm.test(\"Informa os campos invalidos\", function () { pm.expect(b.erros.map(function (e) { return e.campo; })).to.have.members([\"nome\", \"valorUnitario\"]); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/produto",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "produto"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"\",\n  \"valorUnitario\": -10\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "6) GET /produto/abc (id invalido) - 400 Bad Request",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status 400 Bad Request\", function () { pm.response.to.have.status(400); });",
+              "pm.test(\"Mesmo JSON de erro padronizado\", function () { const b = pm.response.json(); pm.expect(b.status).to.eql(400); pm.expect(b.message).to.include(\"id\"); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/produto/abc",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "produto",
+            "abc"
+          ]
+        }
+      }
+    },
+    {
+      "name": "7) POST /produto (JSON malformado) - 400 Bad Request",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status 400 Bad Request\", function () { pm.response.to.have.status(400); });",
+              "pm.test(\"Mesmo JSON de erro padronizado\", function () { const b = pm.response.json(); pm.expect(b.status).to.eql(400); pm.expect(b.message).to.include(\"JSON\"); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/produto",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "produto"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{ \"nome\": \"Teclado\", \"valorUnitario\": }",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    }
+  ]
+}
